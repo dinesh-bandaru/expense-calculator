@@ -2,7 +2,11 @@
 import Layout from '../layouts/Layout.astro';
 
 const principal = 100_000;
-const formattedPrincipal = principal.toLocaleString('en-US');
+const formattedPrincipal = new Intl.NumberFormat('en-IN', {
+	style: 'currency',
+	currency: 'INR',
+	maximumFractionDigits: 0
+}).format(principal);
 ---
 <Layout>
 	<section class="app" data-principal={principal}>
@@ -12,7 +16,7 @@ const formattedPrincipal = principal.toLocaleString('en-US');
 				<h1>See how fees chip away at compounding</h1>
 				<p class="description">
 					Use the sliders to explore how an annual expense ratio reduces long-term growth compared to
-					a fee-free version of the same fund. We assume an initial investment of ${formattedPrincipal}.
+					a fee-free version of the same fund. We assume an initial investment of {formattedPrincipal}.
 				</p>
 			</div>
 		</header>
@@ -49,7 +53,13 @@ const formattedPrincipal = principal.toLocaleString('en-US');
 					<p class="eyebrow">Balance after fees</p>
 					<h2>Projected value over time</h2>
 				</div>
-				<p class="principal">Starting with ${formattedPrincipal}</p>
+				<div class="chart-header-right">
+					<p class="principal">Starting with {formattedPrincipal}</p>
+					<p class="loss-pill">
+						<span class="loss-label">Net value lost to fees</span>
+						<span id="netLossValue" class="loss-value">₹0</span>
+					</p>
+				</div>
 			</div>
 			<canvas id="growthChart" width="640" height="360" aria-label="Growth chart"></canvas>
 		</section>
@@ -68,9 +78,9 @@ const formattedPrincipal = principal.toLocaleString('en-US');
 		years: 20
 	};
 
-	const currency = new Intl.NumberFormat('en-US', {
+	const currency = new Intl.NumberFormat('en-IN', {
 		style: 'currency',
-		currency: 'USD',
+		currency: 'INR',
 		maximumFractionDigits: 0
 	});
 
@@ -87,6 +97,8 @@ const formattedPrincipal = principal.toLocaleString('en-US');
 	};
 
 	const ctx = document.getElementById('growthChart');
+	const netLossEl = document.getElementById('netLossValue');
+	let animatedNetLoss = 0;
 
 	const chart = new Chart(ctx, {
 		type: 'line',
@@ -140,10 +152,13 @@ const formattedPrincipal = principal.toLocaleString('en-US');
 			plugins: {
 				legend: {
 					labels: {
-						color: '#e2e8f0'
+						color: '#e2e8f0',
+						usePointStyle: true,
+						pointStyle: 'circle'
 					}
 				},
 				tooltip: {
+					usePointStyle: true,
 					callbacks: {
 						label: (context) => `${context.dataset.label}: ${currency.format(context.parsed.y)}`,
 						footer: (items) => {
@@ -176,12 +191,38 @@ const formattedPrincipal = principal.toLocaleString('en-US');
 		return values;
 	}
 
+	function animateNetLoss(target) {
+		const start = animatedNetLoss;
+		const duration = 500;
+		const startTime = performance.now();
+
+		function frame(now) {
+			const t = Math.min((now - startTime) / duration, 1);
+			const eased = 1 - Math.pow(1 - t, 3);
+			animatedNetLoss = start + (target - start) * eased;
+			if (netLossEl) {
+				netLossEl.textContent = currency.format(Math.round(animatedNetLoss));
+			}
+			if (t < 1) requestAnimationFrame(frame);
+		}
+
+		requestAnimationFrame(frame);
+	}
+
 	function refreshChart() {
 		const labels = Array.from({ length: state.years + 1 }, (_, idx) => `${idx}y`);
 		chart.data.labels = labels;
-		chart.data.datasets[0].data = computeSeries(state.cagr);
+		const withoutFees = computeSeries(state.cagr);
 		const effectiveRate = state.cagr - state.expense;
-		chart.data.datasets[1].data = computeSeries(effectiveRate);
+		const withFees = computeSeries(effectiveRate);
+
+		chart.data.datasets[0].data = withoutFees;
+		chart.data.datasets[1].data = withFees;
+
+		const lastWithout = withoutFees[withoutFees.length - 1] ?? 0;
+		const lastWith = withFees[withFees.length - 1] ?? 0;
+		const netLoss = Math.max(lastWithout - lastWith, 0);
+		animateNetLoss(netLoss);
 		chart.update();
 	}
 
@@ -278,7 +319,7 @@ const formattedPrincipal = principal.toLocaleString('en-US');
 	.chart-header {
 		display: flex;
 		justify-content: space-between;
-		align-items: center;
+		align-items: flex-start;
 		margin-bottom: 16px;
 		gap: 16px;
 	}
@@ -287,6 +328,38 @@ const formattedPrincipal = principal.toLocaleString('en-US');
 		color: #94a3b8;
 		margin: 0;
 		font-size: 0.95rem;
+	}
+
+	.chart-header-right {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 4px;
+		text-align: right;
+	}
+
+	.loss-pill {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 6px;
+		margin: 0;
+		padding: 4px 10px;
+		border-radius: 999px;
+		background: rgba(239, 68, 68, 0.12);
+		border: 1px solid rgba(239, 68, 68, 0.4);
+	}
+
+	.loss-label {
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		color: #fecaca;
+	}
+
+	.loss-value {
+		font-weight: 600;
+		color: #fecaca;
+		font-variant-numeric: tabular-nums;
 	}
 
 	canvas {
