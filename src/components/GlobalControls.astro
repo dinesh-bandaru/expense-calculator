@@ -1,0 +1,99 @@
+---
+import { getState, setState, subscribe } from "../lib/store";
+---
+
+<div class="global-controls">
+    <div class="input-group">
+        <label for="principalInput">Principal Amount</label>
+        <input type="number" id="principalInput" min="1000" step="1000" />
+    </div>
+    <div class="input-group">
+        <label for="currencySelect">Currency</label>
+        <select id="currencySelect">
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="INR">INR (₹)</option>
+        </select>
+    </div>
+</div>
+
+<script>
+    import { getState, setState, subscribe } from "../lib/store";
+
+    const principalInput = document.getElementById(
+        "principalInput",
+    ) as HTMLInputElement;
+    const currencySelect = document.getElementById(
+        "currencySelect",
+    ) as HTMLSelectElement;
+
+    // Initial state
+    const state = getState();
+    if (principalInput) principalInput.value = state.principal.toString();
+    if (currencySelect) currencySelect.value = state.currency;
+
+    // Listeners
+    if (principalInput) {
+        principalInput.addEventListener("input", (e) => {
+            const target = e.target as HTMLInputElement;
+            setState({ principal: Number(target.value) });
+        });
+    }
+
+    if (currencySelect) {
+        currencySelect.addEventListener("change", (e) => {
+            const target = e.target as HTMLSelectElement;
+            setState({ currency: target.value as any });
+        });
+    }
+
+    // Subscribe
+    subscribe((appState) => {
+        if (principalInput && document.activeElement !== principalInput) {
+            principalInput.value = appState.principal.toString();
+        }
+        if (currencySelect) {
+            currencySelect.value = appState.currency;
+        }
+    });
+</script>
+
+<style>
+    .global-controls {
+        display: flex;
+        gap: 16px;
+        margin-top: 24px;
+        flex-wrap: wrap;
+    }
+
+    .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .input-group label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #94a3b8;
+    }
+
+    .input-group input,
+    .input-group select {
+        padding: 10px 16px;
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        color: #e2e8f0;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .input-group input:focus,
+    .input-group select:focus {
+        border-color: #38bdf8;
+    }
+</style>

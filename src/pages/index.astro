@@ -1,5 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import GlobalControls from "../components/GlobalControls.astro";
+import PageHeader from "../components/PageHeader.astro";
+import ChartCard from "../components/ChartCard.astro";
 ---
 
 <Layout>
@@ -9,39 +12,15 @@ import Layout from "../layouts/Layout.astro";
 				View Real World Data <span class="arrow">→</span>
 			</span>
 		</a>
-		<header class="intro">
-			<div>
-				<p class="eyebrow">Fund projection</p>
-				<h1>See how fees chip away at compounding</h1>
-				<p class="description">
-					Use the sliders to explore how an annual expense ratio
-					reduces long-term growth compared to a fee-free version of
-					the same fund.
-				</p>
 
-				<div class="global-controls">
-					<div class="input-group">
-						<label for="principalInput">Principal Amount</label>
-						<input
-							type="number"
-							id="principalInput"
-							value="100000"
-							min="1000"
-							step="1000"
-						/>
-					</div>
-					<div class="input-group">
-						<label for="currencySelect">Currency</label>
-						<select id="currencySelect">
-							<option value="USD">USD ($)</option>
-							<option value="EUR">EUR (€)</option>
-							<option value="GBP">GBP (£)</option>
-							<option value="INR">INR (₹)</option>
-						</select>
-					</div>
-				</div>
-			</div>
-		</header>
+		<PageHeader
+			eyebrow="Fund projection"
+			title="See how fees chip away at compounding"
+		>
+			Use the sliders to explore how an annual expense ratio reduces
+			long-term growth compared to a fee-free version of the same fund.
+			<GlobalControls slot="controls" />
+		</PageHeader>
 
 		<section class="controls">
 			<div class="control">
@@ -90,28 +69,7 @@ import Layout from "../layouts/Layout.astro";
 			</div>
 		</section>
 
-		<div class="chart-card">
-			<div class="chart-header">
-				<div>
-					<p class="eyebrow">Projected Growth</p>
-					<h2>Your Projection</h2>
-				</div>
-				<div class="chart-header-right">
-					<p class="principal">
-						Starting with <span id="principalDisplay">--</span>
-					</p>
-					<p class="loss-pill">
-						<span class="loss-label">Projected loss to fees</span>
-						<span id="netLossValue" class="loss-value">0</span>
-					</p>
-				</div>
-			</div>
-			<canvas
-				id="growthChart"
-				width="640"
-				height="360"
-				aria-label="Growth chart"></canvas>
-		</div>
+		<ChartCard title="Your Projection" chartId="growthChart" />
 	</section>
 </Layout>
 
@@ -309,34 +267,8 @@ import Layout from "../layouts/Layout.astro";
 		});
 	});
 
-	// Global controls listeners
-	if (globalInputs.principal) {
-		globalInputs.principal.addEventListener("input", (e) => {
-			const target = e.target as HTMLInputElement;
-			setState({ principal: Number(target.value) });
-		});
-	}
-
-	if (globalInputs.currency) {
-		globalInputs.currency.addEventListener("change", (e) => {
-			const target = e.target as HTMLSelectElement;
-			setState({ currency: target.value as any });
-		});
-	}
-
 	// Subscribe to store changes
 	subscribe((appState) => {
-		if (
-			globalInputs.principal &&
-			document.activeElement !== globalInputs.principal
-		) {
-			(globalInputs.principal as HTMLInputElement).value =
-				appState.principal.toString();
-		}
-		if (globalInputs.currency) {
-			(globalInputs.currency as HTMLSelectElement).value =
-				appState.currency;
-		}
 		refreshChart();
 	});
 
@@ -408,168 +340,6 @@ import Layout from "../layouts/Layout.astro";
 		from {
 			transform: rotate(0deg);
 		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	.eyebrow {
-		font-size: 0.75rem;
-		text-transform: uppercase;
-		letter-spacing: 0.3em;
-		color: #38bdf8;
-		margin-bottom: 0.4rem;
-	}
-
-	h1 {
-		margin: 0 0 0.5rem;
-		font-size: clamp(2rem, 4vw, 3.25rem);
-	}
-
-	h2 {
-		margin: 0;
-		font-size: 1.5rem;
-	}
-
-	.description {
-		max-width: 60ch;
-		color: #cbd5f5;
-		margin: 0;
-		line-height: 1.6;
-	}
-
-	.global-controls {
-		display: flex;
-		gap: 16px;
-		margin-top: 24px;
-		flex-wrap: wrap;
-	}
-
-	.input-group {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-
-	.input-group label {
-		font-size: 0.75rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: #94a3b8;
-	}
-
-	.input-group input,
-	.input-group select {
-		padding: 10px 16px;
-		border-radius: 8px;
-		background: rgba(15, 23, 42, 0.6);
-		border: 1px solid rgba(148, 163, 184, 0.2);
-		color: #e2e8f0;
-		font-size: 0.95rem;
-		outline: none;
-		transition: border-color 0.2s;
-	}
-
-	.input-group input:focus,
-	.input-group select:focus {
-		border-color: #38bdf8;
-	}
-
-	.controls {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-		gap: 16px;
-		background: rgba(15, 23, 42, 0.72);
-		padding: 20px;
-		border-radius: 20px;
-		border: 1px solid rgba(148, 163, 184, 0.15);
-		backdrop-filter: blur(8px);
-	}
-
-	.control {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	.control__label {
-		display: flex;
-		justify-content: space-between;
-		font-size: 0.95rem;
-		color: #e2e8f0;
-	}
-
-	input[type="range"] {
-		accent-color: #38bdf8;
-		cursor: pointer;
-	}
-
-	.chart-card {
-		background: rgba(2, 6, 23, 0.85);
-		border-radius: 24px;
-		padding: 24px;
-		border: 1px solid rgba(56, 189, 248, 0.25);
-		box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.7);
-	}
-
-	.chart-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		margin-bottom: 16px;
-		gap: 16px;
-	}
-
-	.principal {
-		color: #94a3b8;
-		margin: 0;
-		font-size: 0.95rem;
-	}
-
-	.chart-header-right {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		gap: 4px;
-		text-align: right;
-	}
-
-	.loss-pill {
-		display: inline-flex;
-		align-items: baseline;
-		gap: 6px;
-		margin: 0;
-		padding: 4px 10px;
-		border-radius: 999px;
-		background: rgba(239, 68, 68, 0.12);
-		border: 1px solid rgba(239, 68, 68, 0.4);
-	}
-
-	.loss-label {
-		font-size: 0.75rem;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-		color: #fecaca;
-	}
-
-	.loss-value {
-		font-weight: 600;
-		color: #fecaca;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.chart-card {
-		background: rgba(2, 6, 23, 0.85);
-		border-radius: 24px;
-		padding: 24px;
-		border: 1px solid rgba(56, 189, 248, 0.25);
-		box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.7);
-	}
-
-	.chart-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
 		margin-bottom: 16px;
 		gap: 16px;
 	}
@@ -615,6 +385,35 @@ import Layout from "../layouts/Layout.astro";
 	canvas {
 		width: 100% !important;
 		height: auto !important;
+	}
+
+	.controls {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+		gap: 16px;
+		background: rgba(15, 23, 42, 0.72);
+		padding: 20px;
+		border-radius: 20px;
+		border: 1px solid rgba(148, 163, 184, 0.15);
+		backdrop-filter: blur(8px);
+	}
+
+	.control {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.control__label {
+		display: flex;
+		justify-content: space-between;
+		font-size: 0.95rem;
+		color: #e2e8f0;
+	}
+
+	input[type="range"] {
+		accent-color: #38bdf8;
+		cursor: pointer;
 	}
 
 	@media (max-width: 600px) {
