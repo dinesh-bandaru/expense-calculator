@@ -7,10 +7,8 @@ import ChartCard from "../components/ChartCard.astro";
 
 <Layout>
     <section class="app">
-        <PageHeader eyebrow="Real World Data" title="Analyze Actual Funds">
-            <a href="/" slot="back-link" class="back-link"
-                >← Back to Simulator</a
-            >
+        <PageHeader eyebrow="Compare Funds" title="Analyze Actual Funds">
+            <a href="/" slot="back-link" class="back-link">← Home</a>
             Select a mutual fund to see how its historical 5-year CAGR and expense
             ratio would impact your returns over time.
             <GlobalControls slot="controls" />
@@ -102,16 +100,24 @@ import ChartCard from "../components/ChartCard.astro";
     let currentFundIndex = 0;
     let years = 20;
 
-    function populateFunds(category) {
+    function populateFunds(category, defaultFundName = null) {
         currentFunds = mutualFundsData[category] || [];
         fundSelect.innerHTML = "";
+        let defaultIndex = 0;
+
         currentFunds.forEach((fund, index) => {
             const option = document.createElement("option");
             option.value = index.toString();
             option.textContent = fund.fund_name;
             fundSelect.appendChild(option);
+
+            if (defaultFundName && fund.fund_name === defaultFundName) {
+                defaultIndex = index;
+            }
         });
-        updateFundDetails(0);
+
+        fundSelect.value = defaultIndex.toString();
+        updateFundDetails(defaultIndex);
     }
 
     function updateFundDetails(index) {
@@ -194,16 +200,16 @@ import ChartCard from "../components/ChartCard.astro";
                 datasets: [
                     {
                         label: "Gross Return (No Fees)",
-                        borderColor: "#38bdf8",
-                        backgroundColor: "rgba(56, 189, 248, 0.15)",
+                        borderColor: "#4ade80",
+                        backgroundColor: "rgba(74, 222, 128, 0.15)",
                         borderWidth: 3,
                         tension: 0.3,
                         data: data1,
                     },
                     {
                         label: "Net Return (After Fees)",
-                        borderColor: "#fbbf24",
-                        backgroundColor: "rgba(251, 191, 36, 0.15)",
+                        borderColor: "#f87171",
+                        backgroundColor: "rgba(248, 113, 113, 0.15)",
                         borderWidth: 3,
                         tension: 0.3,
                         data: data2,
@@ -304,7 +310,7 @@ import ChartCard from "../components/ChartCard.astro";
     });
 
     // Initial load
-    populateFunds("indian_mutual_funds");
+    populateFunds("indian_mutual_funds", "Axis Bluechip Fund Direct Growth");
 </script>
 
 <style>
@@ -325,7 +331,7 @@ import ChartCard from "../components/ChartCard.astro";
     }
 
     .back-link:hover {
-        color: #38bdf8;
+        color: #4ade80;
     }
 
     .controls {
@@ -365,7 +371,7 @@ import ChartCard from "../components/ChartCard.astro";
     }
 
     .select-input:focus {
-        border-color: #38bdf8;
+        border-color: #4ade80;
     }
 
     .stats-display {
@@ -390,11 +396,11 @@ import ChartCard from "../components/ChartCard.astro";
     .stat-value {
         font-size: 1.25rem;
         font-weight: 600;
-        color: #38bdf8;
+        color: #4ade80;
     }
 
     input[type="range"] {
-        accent-color: #38bdf8;
+        accent-color: #4ade80;
         cursor: pointer;
     }
 

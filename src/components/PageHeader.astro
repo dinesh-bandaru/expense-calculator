@@ -12,11 +12,8 @@ const { eyebrow, title } = Astro.props;
         <slot name="back-link" />
         <p class="eyebrow">{eyebrow}</p>
         <h1>{title}</h1>
-        <p class="description">
-            <slot />
-        </p>
-        <slot name="controls" />
     </div>
+    <slot name="controls" />
 </header>
 
 <style>
@@ -24,7 +21,7 @@ const { eyebrow, title } = Astro.props;
         font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.3em;
-        color: #38bdf8;
+        color: #4ade80;
         margin-bottom: 0.4rem;
     }
 

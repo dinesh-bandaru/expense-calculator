@@ -9,7 +9,7 @@ import ChartCard from "../components/ChartCard.astro";
 	<section class="app">
 		<a href="/funds" class="glowing-pill">
 			<span class="glowing-pill-content">
-				View Real World Data <span class="arrow">→</span>
+				Compare Funds <span class="arrow">→</span>
 			</span>
 		</a>
 
@@ -117,16 +117,16 @@ import ChartCard from "../components/ChartCard.astro";
 				datasets: [
 					{
 						label: "Without fees",
-						borderColor: "#38bdf8",
-						backgroundColor: "rgba(56, 189, 248, 0.15)",
+						borderColor: "#4ade80",
+						backgroundColor: "rgba(74, 222, 128, 0.15)",
 						borderWidth: 3,
 						tension: 0.3,
 						data: [],
 					},
 					{
 						label: "With expense ratio",
-						borderColor: "#fbbf24",
-						backgroundColor: "rgba(251, 191, 36, 0.15)",
+						borderColor: "#f87171",
+						backgroundColor: "rgba(248, 113, 113, 0.15)",
 						borderWidth: 3,
 						tension: 0.3,
 						data: [],
@@ -412,7 +412,7 @@ import ChartCard from "../components/ChartCard.astro";
 	}
 
 	input[type="range"] {
-		accent-color: #38bdf8;
+		accent-color: #4ade80;
 		cursor: pointer;
 	}
 
