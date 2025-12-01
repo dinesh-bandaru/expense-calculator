@@ -1,0 +1,126 @@
+{
+	"indian_mutual_funds": [
+	  {
+		"fund_name": "Quant Small Cap Fund Direct Plan Growth",
+		"ticker": "N/A",
+		"5_year_cagr_percent": 33.20,
+		"expense_ratio_percent": 0.75
+	  },
+	  {
+		"fund_name": "Nippon India Small Cap Fund Direct Growth",
+		"ticker": "N/A",
+		"5_year_cagr_percent": 30.35,
+		"expense_ratio_percent": 0.63
+	  },
+	  {
+		"fund_name": "HDFC Mid-Cap Opportunities Fund Direct Growth",
+		"ticker": "N/A",
+		"5_year_cagr_percent": 26.94,
+		"expense_ratio_percent": 0.71
+	  },
+	  {
+		"fund_name": "Kotak Emerging Equity Fund Direct Growth",
+		"ticker": "N/A",
+		"5_year_cagr_percent": 25.28,
+		"expense_ratio_percent": 0.37
+	  },
+	  {
+		"fund_name": "ICICI Prudential Bluechip Fund Direct Growth",
+		"ticker": "N/A",
+		"5_year_cagr_percent": 21.94,
+		"expense_ratio_percent": 0.84
+	  },
+	  {
+		"fund_name": "Parag Parikh Flexi Cap Fund Direct Growth",
+		"ticker": "N/A",
+		"5_year_cagr_percent": 21.76,
+		"expense_ratio_percent": 0.63
+	  },
+	  {
+		"fund_name": "DSP Midcap Fund Direct Growth",
+		"ticker": "N/A",
+		"5_year_cagr_percent": 17.45,
+		"expense_ratio_percent": 0.67
+	  },
+	  {
+		"fund_name": "Mirae Asset Large Cap Fund Direct Growth",
+		"ticker": "N/A",
+		"5_year_cagr_percent": 16.58,
+		"expense_ratio_percent": 0.53
+	  },
+	  {
+		"fund_name": "SBI Equity Hybrid Fund Direct Growth",
+		"ticker": "N/A",
+		"5_year_cagr_percent": 15.70,
+		"expense_ratio_percent": 0.72
+	  },
+	  {
+		"fund_name": "Axis Bluechip Fund Direct Growth",
+		"ticker": "N/A",
+		"5_year_cagr_percent": 12.03,
+		"expense_ratio_percent": 0.70
+	  }
+	],
+	"american_mutual_funds_and_etfs": [
+	  {
+		"fund_name": "Invesco QQQ Trust",
+		"ticker": "QQQ",
+		"5_year_cagr_percent": 19.22,
+		"expense_ratio_percent": 0.20
+	  },
+	  {
+		"fund_name": "Vanguard Growth Index Fund Admiral Shares",
+		"ticker": "VIGAX",
+		"5_year_cagr_percent": 18.42,
+		"expense_ratio_percent": 0.05
+	  },
+	  {
+		"fund_name": "Fidelity Contrafund",
+		"ticker": "FCNTX",
+		"5_year_cagr_percent": 17.76,
+		"expense_ratio_percent": 0.63
+	  },
+	  {
+		"fund_name": "Fidelity 500 Index Fund",
+		"ticker": "FXAIX",
+		"5_year_cagr_percent": 17.62,
+		"expense_ratio_percent": 0.015
+	  },
+	  {
+		"fund_name": "SPDR S&P 500 ETF Trust",
+		"ticker": "SPY",
+		"5_year_cagr_percent": 17.53,
+		"expense_ratio_percent": 0.09
+	  },
+	  {
+		"fund_name": "Vanguard 500 Index Fund Admiral Shares",
+		"ticker": "VFIAX",
+		"5_year_cagr_percent": 16.02,
+		"expense_ratio_percent": 0.04
+	  },
+	  {
+		"fund_name": "Vanguard Total Stock Market Index Fund Admiral Shares",
+		"ticker": "VTSAX",
+		"5_year_cagr_percent": 14.06,
+		"expense_ratio_percent": 0.04
+	  },
+	  {
+		"fund_name": "American Funds The Growth Fund of America",
+		"ticker": "AGTHX",
+		"5_year_cagr_percent": 11.73,
+		"expense_ratio_percent": 0.59
+	  },
+	  {
+		"fund_name": "T. Rowe Price Blue Chip Growth Fund",
+		"ticker": "TRBCX",
+		"5_year_cagr_percent": 11.55,
+		"expense_ratio_percent": 0.69
+	  },
+	  {
+		"fund_name": "Vanguard Total International Stock Index Fund Admiral Shares",
+		"ticker": "VTIAX",
+		"5_year_cagr_percent": 11.22,
+		"expense_ratio_percent": 0.09
+	  }
+	]
+  }

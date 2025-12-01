@@ -1,23 +1,45 @@
 ---
-import Layout from '../layouts/Layout.astro';
-
-const principal = 100_000;
-const formattedPrincipal = new Intl.NumberFormat('en-IN', {
-	style: 'currency',
-	currency: 'INR',
-	maximumFractionDigits: 0
-}).format(principal);
+import Layout from "../layouts/Layout.astro";
 ---
+
 <Layout>
-	<section class="app" data-principal={principal}>
+	<section class="app">
+		<a href="/funds" class="glowing-pill">
+			<span class="glowing-pill-content">
+				View Real World Data <span class="arrow">→</span>
+			</span>
+		</a>
 		<header class="intro">
 			<div>
 				<p class="eyebrow">Fund projection</p>
 				<h1>See how fees chip away at compounding</h1>
 				<p class="description">
-					Use the sliders to explore how an annual expense ratio reduces long-term growth compared to
-					a fee-free version of the same fund. We assume an initial investment of {formattedPrincipal}.
+					Use the sliders to explore how an annual expense ratio
+					reduces long-term growth compared to a fee-free version of
+					the same fund.
 				</p>
+
+				<div class="global-controls">
+					<div class="input-group">
+						<label for="principalInput">Principal Amount</label>
+						<input
+							type="number"
+							id="principalInput"
+							value="100000"
+							min="1000"
+							step="1000"
+						/>
+					</div>
+					<div class="input-group">
+						<label for="currencySelect">Currency</label>
+						<select id="currencySelect">
+							<option value="USD">USD ($)</option>
+							<option value="EUR">EUR (€)</option>
+							<option value="GBP">GBP (£)</option>
+							<option value="INR">INR (₹)</option>
+						</select>
+					</div>
+				</div>
 			</div>
 		</header>
 
@@ -27,7 +49,14 @@ const formattedPrincipal = new Intl.NumberFormat('en-IN', {
 					<span>CAGR</span>
 					<span data-output="cagr">0%</span>
 				</div>
-				<input id="cagrSlider" type="range" min="2" max="25" step="0.1" value="12" />
+				<input
+					id="cagrSlider"
+					type="range"
+					min="2"
+					max="25"
+					step="0.1"
+					value="12"
+				/>
 			</div>
 
 			<div class="control">
@@ -35,7 +64,14 @@ const formattedPrincipal = new Intl.NumberFormat('en-IN', {
 					<span>Expense ratio</span>
 					<span data-output="expense">0%</span>
 				</div>
-				<input id="expenseSlider" type="range" min="0" max="3" step="0.05" value="0.8" />
+				<input
+					id="expenseSlider"
+					type="range"
+					min="0"
+					max="3"
+					step="0.05"
+					value="0.8"
+				/>
 			</div>
 
 			<div class="control">
@@ -43,152 +79,147 @@ const formattedPrincipal = new Intl.NumberFormat('en-IN', {
 					<span>Projection length</span>
 					<span data-output="years">0 years</span>
 				</div>
-				<input id="yearSlider" type="range" min="5" max="40" step="1" value="20" />
+				<input
+					id="yearSlider"
+					type="range"
+					min="5"
+					max="40"
+					step="1"
+					value="20"
+				/>
 			</div>
 		</section>
 
-		<section class="chart-card">
-			<div class="chart-header">
-				<div>
-					<p class="eyebrow">Balance after fees</p>
-					<h2>Projected value over time</h2>
-				</div>
-				<div class="chart-header-right">
-					<p class="principal">Starting with {formattedPrincipal}</p>
-					<p class="loss-pill">
-						<span class="loss-label">Net value lost to fees</span>
-						<span id="netLossValue" class="loss-value">₹0</span>
-					</p>
-				</div>
-			</div>
-			<canvas id="growthChart" width="640" height="360" aria-label="Growth chart"></canvas>
-		</section>
+		<canvas
+			id="growthChart"
+			width="640"
+			height="360"
+			aria-label="Growth chart"></canvas>
 	</section>
 </Layout>
 
-<script type="module">
-	import { Chart, registerables } from 'https://cdn.jsdelivr.net/npm/chart.js@4.4.6/+esm';
+<script>
+	import { Chart, registerables } from "chart.js";
+	import { computeCompoundInterest } from "../lib/finance";
+	import { getState, setState, subscribe, formatMoney } from "../lib/store";
 
 	Chart.register(...registerables);
 
-	const principal = Number(document.querySelector('.app')?.dataset.principal ?? 0);
 	const state = {
 		cagr: 12,
 		expense: 0.8,
-		years: 20
+		years: 20,
 	};
 
-	const currency = new Intl.NumberFormat('en-IN', {
-		style: 'currency',
-		currency: 'INR',
-		maximumFractionDigits: 0
-	});
-
 	const sliders = {
-		cagr: document.querySelector('#cagrSlider'),
-		expense: document.querySelector('#expenseSlider'),
-		years: document.querySelector('#yearSlider')
+		cagr: document.querySelector("#cagrSlider"),
+		expense: document.querySelector("#expenseSlider"),
+		years: document.querySelector("#yearSlider"),
+	};
+
+	const globalInputs = {
+		principal: document.querySelector("#principalInput"),
+		currency: document.querySelector("#currencySelect"),
 	};
 
 	const outputs = {
 		cagr: document.querySelector('[data-output="cagr"]'),
 		expense: document.querySelector('[data-output="expense"]'),
-		years: document.querySelector('[data-output="years"]')
+		years: document.querySelector('[data-output="years"]'),
 	};
 
-	const ctx = document.getElementById('growthChart');
-	const netLossEl = document.getElementById('netLossValue');
+	const ctx = document.getElementById("growthChart") as HTMLCanvasElement;
+	const netLossEl = document.getElementById("netLossValue");
+	const principalDisplay = document.querySelector(".principal");
 	let animatedNetLoss = 0;
+	let chart;
 
-	const chart = new Chart(ctx, {
-		type: 'line',
-		data: {
-			labels: [],
-			datasets: [
-				{
-					label: 'Without fees',
-					borderColor: '#38bdf8',
-					backgroundColor: 'rgba(56, 189, 248, 0.15)',
-					borderWidth: 3,
-					tension: 0.3,
-					data: []
-				},
-				{
-					label: 'With expense ratio',
-					borderColor: '#fbbf24',
-					backgroundColor: 'rgba(251, 191, 36, 0.15)',
-					borderWidth: 3,
-					tension: 0.3,
-					data: []
-				}
-			]
-		},
-		options: {
-			animation: false,
-			responsive: true,
-			interaction: {
-				mode: 'index',
-				intersect: false
-			},
-			scales: {
-				y: {
-					grid: {
-						color: 'rgba(148, 163, 184, 0.15)'
+	if (ctx) {
+		chart = new Chart(ctx, {
+			type: "line",
+			data: {
+				labels: [],
+				datasets: [
+					{
+						label: "Without fees",
+						borderColor: "#38bdf8",
+						backgroundColor: "rgba(56, 189, 248, 0.15)",
+						borderWidth: 3,
+						tension: 0.3,
+						data: [],
 					},
-					ticks: {
-						color: '#cbd5f5',
-						callback: (value) => currency.format(value)
-					}
-				},
-				x: {
-					grid: {
-						display: false
+					{
+						label: "With expense ratio",
+						borderColor: "#fbbf24",
+						backgroundColor: "rgba(251, 191, 36, 0.15)",
+						borderWidth: 3,
+						tension: 0.3,
+						data: [],
 					},
-					ticks: {
-						color: '#cbd5f5'
-					}
-				}
+				],
 			},
-			plugins: {
-				legend: {
-					labels: {
-						color: '#e2e8f0',
+			options: {
+				animation: false,
+				responsive: true,
+				interaction: {
+					mode: "index",
+					intersect: false,
+				},
+				scales: {
+					y: {
+						grid: {
+							color: "rgba(148, 163, 184, 0.15)",
+						},
+						ticks: {
+							color: "#cbd5f5",
+							callback: (value) => formatMoney(Number(value)),
+						},
+					},
+					x: {
+						grid: {
+							display: false,
+						},
+						ticks: {
+							color: "#cbd5f5",
+						},
+					},
+				},
+				plugins: {
+					legend: {
+						labels: {
+							color: "#e2e8f0",
+							usePointStyle: true,
+							pointStyle: "circle",
+						},
+					},
+					tooltip: {
 						usePointStyle: true,
-						pointStyle: 'circle'
-					}
-				},
-				tooltip: {
-					usePointStyle: true,
-					callbacks: {
-						label: (context) => `${context.dataset.label}: ${currency.format(context.parsed.y)}`,
-						footer: (items) => {
-							if (!items.length) return '';
-							const withoutFees = items.find((item) => item.datasetIndex === 0)?.parsed.y ?? 0;
-							const withFees = items.find((item) => item.datasetIndex === 1)?.parsed.y ?? 0;
-							const delta = withoutFees - withFees;
-							if (!delta) return '';
-							return `Difference: ${currency.format(delta)}`;
-						}
+						callbacks: {
+							label: (context) =>
+								`${context.dataset.label}: ${formatMoney(context.parsed.y)}`,
+							footer: (items) => {
+								if (!items.length) return "";
+								const withoutFees =
+									items.find(
+										(item) => item.datasetIndex === 0,
+									)?.parsed.y ?? 0;
+								const withFees =
+									items.find(
+										(item) => item.datasetIndex === 1,
+									)?.parsed.y ?? 0;
+								const delta = withoutFees - withFees;
+								if (!delta) return "";
+								return `Difference: ${formatMoney(delta)}`;
+							},
+						},
+						footerColor: "#f87171",
+						footerFont: {
+							weight: "600",
+						},
 					},
-					footerColor: '#f87171',
-					footerFont: {
-						weight: '600'
-					}
-				}
-			}
-		}
-	});
-
-	function computeSeries(ratePercent) {
-		const rate = ratePercent / 100;
-		const values = [];
-
-		for (let year = 0; year <= state.years; year += 1) {
-			const amount = principal * Math.pow(1 + rate, year);
-			values.push(Math.round(amount));
-		}
-
-		return values;
+				},
+			},
+		});
 	}
 
 	function animateNetLoss(target) {
@@ -201,7 +232,9 @@ const formattedPrincipal = new Intl.NumberFormat('en-IN', {
 			const eased = 1 - Math.pow(1 - t, 3);
 			animatedNetLoss = start + (target - start) * eased;
 			if (netLossEl) {
-				netLossEl.textContent = currency.format(Math.round(animatedNetLoss));
+				netLossEl.textContent = formatMoney(
+					Math.round(animatedNetLoss),
+				);
 			}
 			if (t < 1) requestAnimationFrame(frame);
 		}
@@ -210,11 +243,24 @@ const formattedPrincipal = new Intl.NumberFormat('en-IN', {
 	}
 
 	function refreshChart() {
-		const labels = Array.from({ length: state.years + 1 }, (_, idx) => `${idx}y`);
+		const appState = getState();
+		const labels = Array.from(
+			{ length: state.years + 1 },
+			(_, idx) => `${idx}y`,
+		);
 		chart.data.labels = labels;
-		const withoutFees = computeSeries(state.cagr);
+
+		const withoutFees = computeCompoundInterest(
+			appState.principal,
+			state.cagr,
+			state.years,
+		);
 		const effectiveRate = state.cagr - state.expense;
-		const withFees = computeSeries(effectiveRate);
+		const withFees = computeCompoundInterest(
+			appState.principal,
+			effectiveRate,
+			state.years,
+		);
 
 		chart.data.datasets[0].data = withoutFees;
 		chart.data.datasets[1].data = withFees;
@@ -224,6 +270,10 @@ const formattedPrincipal = new Intl.NumberFormat('en-IN', {
 		const netLoss = Math.max(lastWithout - lastWith, 0);
 		animateNetLoss(netLoss);
 		chart.update();
+
+		if (principalDisplay) {
+			principalDisplay.textContent = `Starting with ${formatMoney(appState.principal)}`;
+		}
 	}
 
 	function updateOutputs() {
@@ -233,17 +283,47 @@ const formattedPrincipal = new Intl.NumberFormat('en-IN', {
 	}
 
 	Object.entries(sliders).forEach(([key, input]) => {
-		input.addEventListener('input', () => {
+		input.addEventListener("input", () => {
 			const value = parseFloat(input.value);
-			state[key] = key === 'years' ? Math.round(value) : value;
+			state[key] = key === "years" ? Math.round(value) : value;
 
 			updateOutputs();
 			refreshChart();
 		});
 	});
 
+	// Global controls listeners
+	if (globalInputs.principal) {
+		globalInputs.principal.addEventListener("input", (e) => {
+			const target = e.target as HTMLInputElement;
+			setState({ principal: Number(target.value) });
+		});
+	}
+
+	if (globalInputs.currency) {
+		globalInputs.currency.addEventListener("change", (e) => {
+			const target = e.target as HTMLSelectElement;
+			setState({ currency: target.value as any });
+		});
+	}
+
+	// Subscribe to store changes
+	subscribe((appState) => {
+		if (
+			globalInputs.principal &&
+			document.activeElement !== globalInputs.principal
+		) {
+			(globalInputs.principal as HTMLInputElement).value =
+				appState.principal.toString();
+		}
+		if (globalInputs.currency) {
+			(globalInputs.currency as HTMLSelectElement).value =
+				appState.currency;
+		}
+		refreshChart();
+	});
+
 	updateOutputs();
-	refreshChart();
 </script>
 
 <style>
@@ -252,6 +332,68 @@ const formattedPrincipal = new Intl.NumberFormat('en-IN', {
 		display: flex;
 		flex-direction: column;
 		gap: 32px;
+	}
+
+	.glowing-pill {
+		align-self: flex-end;
+		position: relative;
+		display: inline-flex;
+		padding: 1px;
+		border-radius: 9999px;
+		text-decoration: none;
+		overflow: hidden;
+		margin-bottom: -20px; /* Pull it up a bit or let it sit */
+	}
+
+	.glowing-pill::before {
+		content: "";
+		position: absolute;
+		inset: -100%;
+		background: conic-gradient(
+			from 0deg,
+			transparent 0deg,
+			transparent 80deg,
+			white 180deg,
+			transparent 280deg,
+			transparent 360deg
+		);
+		animation: spin 3s linear infinite;
+	}
+
+	.glowing-pill-content {
+		position: relative;
+		z-index: 1;
+		background: #0f172a;
+		padding: 8px 16px;
+		border-radius: 9999px;
+		color: #e2e8f0;
+		font-size: 0.85rem;
+		font-weight: 500;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		transition: color 0.2s;
+	}
+
+	.glowing-pill:hover .glowing-pill-content {
+		color: #fff;
+	}
+
+	.arrow {
+		transition: transform 0.2s;
+	}
+
+	.glowing-pill:hover .arrow {
+		transform: translateX(2px);
+	}
+
+	@keyframes spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	.eyebrow {
@@ -279,6 +421,43 @@ const formattedPrincipal = new Intl.NumberFormat('en-IN', {
 		line-height: 1.6;
 	}
 
+	.global-controls {
+		display: flex;
+		gap: 16px;
+		margin-top: 24px;
+		flex-wrap: wrap;
+	}
+
+	.input-group {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.input-group label {
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: #94a3b8;
+	}
+
+	.input-group input,
+	.input-group select {
+		padding: 10px 16px;
+		border-radius: 8px;
+		background: rgba(15, 23, 42, 0.6);
+		border: 1px solid rgba(148, 163, 184, 0.2);
+		color: #e2e8f0;
+		font-size: 0.95rem;
+		outline: none;
+		transition: border-color 0.2s;
+	}
+
+	.input-group input:focus,
+	.input-group select:focus {
+		border-color: #38bdf8;
+	}
+
 	.controls {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -303,7 +482,7 @@ const formattedPrincipal = new Intl.NumberFormat('en-IN', {
 		color: #e2e8f0;
 	}
 
-	input[type='range'] {
+	input[type="range"] {
 		accent-color: #38bdf8;
 		cursor: pointer;
 	}
