@@ -90,11 +90,28 @@ import Layout from "../layouts/Layout.astro";
 			</div>
 		</section>
 
-		<canvas
-			id="growthChart"
-			width="640"
-			height="360"
-			aria-label="Growth chart"></canvas>
+		<div class="chart-card">
+			<div class="chart-header">
+				<div>
+					<p class="eyebrow">Projected Growth</p>
+					<h2>Your Projection</h2>
+				</div>
+				<div class="chart-header-right">
+					<p class="principal">
+						Starting with <span id="principalDisplay">--</span>
+					</p>
+					<p class="loss-pill">
+						<span class="loss-label">Projected loss to fees</span>
+						<span id="netLossValue" class="loss-value">0</span>
+					</p>
+				</div>
+			</div>
+			<canvas
+				id="growthChart"
+				width="640"
+				height="360"
+				aria-label="Growth chart"></canvas>
+		</div>
 	</section>
 </Layout>
 
@@ -130,7 +147,7 @@ import Layout from "../layouts/Layout.astro";
 
 	const ctx = document.getElementById("growthChart") as HTMLCanvasElement;
 	const netLossEl = document.getElementById("netLossValue");
-	const principalDisplay = document.querySelector(".principal");
+	const principalDisplay = document.getElementById("principalDisplay");
 	let animatedNetLoss = 0;
 	let chart;
 
@@ -485,6 +502,60 @@ import Layout from "../layouts/Layout.astro";
 	input[type="range"] {
 		accent-color: #38bdf8;
 		cursor: pointer;
+	}
+
+	.chart-card {
+		background: rgba(2, 6, 23, 0.85);
+		border-radius: 24px;
+		padding: 24px;
+		border: 1px solid rgba(56, 189, 248, 0.25);
+		box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.7);
+	}
+
+	.chart-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		margin-bottom: 16px;
+		gap: 16px;
+	}
+
+	.principal {
+		color: #94a3b8;
+		margin: 0;
+		font-size: 0.95rem;
+	}
+
+	.chart-header-right {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 4px;
+		text-align: right;
+	}
+
+	.loss-pill {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 6px;
+		margin: 0;
+		padding: 4px 10px;
+		border-radius: 999px;
+		background: rgba(239, 68, 68, 0.12);
+		border: 1px solid rgba(239, 68, 68, 0.4);
+	}
+
+	.loss-label {
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		color: #fecaca;
+	}
+
+	.loss-value {
+		font-weight: 600;
+		color: #fecaca;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.chart-card {

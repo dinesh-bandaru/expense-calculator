@@ -100,7 +100,7 @@ import Layout from "../layouts/Layout.astro";
                     </p>
                     <p class="loss-pill">
                         <span class="loss-label" id="lossLabel"
-                            >Projected loss to fees (20y)</span
+                            >Projected loss to fees</span
                         >
                         <span id="netLossValue" class="loss-value">0</span>
                     </p>
@@ -204,8 +204,7 @@ import Layout from "../layouts/Layout.astro";
         const lastWith = withFees[withFees.length - 1] ?? 0;
         const netLoss = Math.max(lastWithout - lastWith, 0);
 
-        if (lossLabel)
-            lossLabel.textContent = `Projected loss to fees (${years}y)`;
+        if (lossLabel) lossLabel.textContent = `Projected loss to fees`;
         if (netLossEl) netLossEl.textContent = formatMoney(Math.round(netLoss));
 
         if (principalDisplay) {
