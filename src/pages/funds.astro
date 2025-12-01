@@ -118,7 +118,7 @@ import Layout from "../layouts/Layout.astro";
 <script>
     import { Chart, registerables } from "chart.js";
     import { computeCompoundInterest } from "../lib/finance";
-    import mutualFundsData from "../data/mutualfunds.json";
+    import mutualFundsData from "../data/mutualFunds.json";
     import { getState, setState, subscribe, formatMoney } from "../lib/store";
 
     Chart.register(...registerables);
