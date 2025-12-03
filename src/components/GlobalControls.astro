@@ -7,15 +7,6 @@ import { getState, setState, subscribe } from "../lib/store";
         <label for="principalInput">Principal Amount</label>
         <input type="number" id="principalInput" min="1000" step="1000" />
     </div>
-    <div class="input-group">
-        <label for="currencySelect">Currency</label>
-        <select id="currencySelect">
-            <option value="USD">USD ($)</option>
-            <option value="EUR">EUR (€)</option>
-            <option value="GBP">GBP (£)</option>
-            <option value="INR">INR (₹)</option>
-        </select>
-    </div>
 </div>
 
 <script>
@@ -24,14 +15,10 @@ import { getState, setState, subscribe } from "../lib/store";
     const principalInput = document.getElementById(
         "principalInput",
     ) as HTMLInputElement;
-    const currencySelect = document.getElementById(
-        "currencySelect",
-    ) as HTMLSelectElement;
 
     // Initial state
     const state = getState();
     if (principalInput) principalInput.value = state.principal.toString();
-    if (currencySelect) currencySelect.value = state.currency;
 
     // Listeners
     if (principalInput) {
@@ -41,20 +28,10 @@ import { getState, setState, subscribe } from "../lib/store";
         });
     }
 
-    if (currencySelect) {
-        currencySelect.addEventListener("change", (e) => {
-            const target = e.target as HTMLSelectElement;
-            setState({ currency: target.value as any });
-        });
-    }
-
     // Subscribe
     subscribe((appState) => {
         if (principalInput && document.activeElement !== principalInput) {
             principalInput.value = appState.principal.toString();
-        }
-        if (currencySelect) {
-            currencySelect.value = appState.currency;
         }
     });
 </script>

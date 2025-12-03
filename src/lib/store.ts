@@ -1,20 +1,9 @@
-export const currencies = {
-    USD: { symbol: "$", locale: "en-US" },
-    EUR: { symbol: "€", locale: "de-DE" },
-    GBP: { symbol: "£", locale: "en-GB" },
-    INR: { symbol: "₹", locale: "en-IN" },
-};
-
-export type CurrencyCode = keyof typeof currencies;
-
 export interface AppState {
     principal: number;
-    currency: CurrencyCode;
 }
 
 const DEFAULT_STATE: AppState = {
     principal: 100000,
-    currency: "INR",
 };
 
 const LISTENERS = new Set<(state: AppState) => void>();
@@ -53,11 +42,10 @@ export function subscribe(listener: (state: AppState) => void) {
     return () => LISTENERS.delete(listener);
 }
 
-export function formatMoney(amount: number, currencyCode: CurrencyCode = currentState.currency): string {
-    const config = currencies[currencyCode];
-    return new Intl.NumberFormat(config.locale, {
+export function formatMoney(amount: number): string {
+    return new Intl.NumberFormat("en-US", {
         style: "currency",
-        currency: currencyCode,
+        currency: "USD",
         maximumFractionDigits: 0,
     }).format(amount);
 }

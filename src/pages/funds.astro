@@ -3,6 +3,28 @@ import Layout from "../layouts/Layout.astro";
 import GlobalControls from "../components/GlobalControls.astro";
 import PageHeader from "../components/PageHeader.astro";
 import ChartCard from "../components/ChartCard.astro";
+
+let d1Funds: any[] = [];
+try {
+    if (Astro.locals.runtime?.env?.etf_db) {
+        const { results } = await Astro.locals.runtime.env.etf_db
+            .prepare(
+                `
+                SELECT 
+                    t1.symbol, 
+                    t1.name, 
+                    t2."5yr_cagr" as cagr, 
+                    t2.expense_ratio 
+                FROM etfs t1 
+                LEFT JOIN etf_fundamentals t2 ON t1.symbol = t2.etf
+            `,
+            )
+            .all();
+        d1Funds = results || [];
+    }
+} catch (e) {
+    console.error("Failed to fetch from D1", e);
+}
 ---
 
 <Layout>
@@ -15,20 +37,6 @@ import ChartCard from "../components/ChartCard.astro";
         </PageHeader>
 
         <section class="controls">
-            <div class="control">
-                <div class="control__label">
-                    <label for="categorySelect">Fund Category</label>
-                </div>
-                <select id="categorySelect" class="select-input">
-                    <option value="indian_mutual_funds"
-                        >Indian Mutual Funds</option
-                    >
-                    <option value="american_mutual_funds_and_etfs"
-                        >American Funds & ETFs</option
-                    >
-                </select>
-            </div>
-
             <div class="control">
                 <div class="control__label">
                     <label for="fundSelect">Select Fund</label>
@@ -69,17 +77,17 @@ import ChartCard from "../components/ChartCard.astro";
     </section>
 </Layout>
 
+<script define:vars={{ d1Funds }}>
+    window.d1Funds = d1Funds;
+</script>
+
 <script>
     import { Chart, registerables } from "chart.js";
     import { computeCompoundInterest } from "../lib/finance";
-    import mutualFundsData from "../data/mutualFunds.json";
     import { getState, setState, subscribe, formatMoney } from "../lib/store";
 
     Chart.register(...registerables);
 
-    const categorySelect = document.getElementById(
-        "categorySelect",
-    ) as HTMLSelectElement;
     const fundSelect = document.getElementById(
         "fundSelect",
     ) as HTMLSelectElement;
@@ -96,12 +104,20 @@ import ChartCard from "../components/ChartCard.astro";
     const principalDisplay = document.getElementById("principalDisplay");
 
     let chart: Chart;
-    let currentFunds = [];
+    let currentFunds: any[] = [];
     let currentFundIndex = 0;
     let years = 20;
 
-    function populateFunds(category, defaultFundName = null) {
-        currentFunds = mutualFundsData[category] || [];
+    // Use D1 funds directly
+    const d1Funds: any[] = (window as any).d1Funds || [];
+    currentFunds = d1Funds.map((fund: any) => ({
+        fund_name: fund.name,
+        symbol: fund.symbol,
+        "5_year_cagr_percent": Math.round(fund.cagr * 100 * 100) / 100,
+        expense_ratio_percent: Math.round(fund.expense_ratio * 100 * 100) / 100,
+    }));
+
+    function populateFunds(defaultFundName: string | null = null) {
         fundSelect.innerHTML = "";
         let defaultIndex = 0;
 
@@ -120,7 +136,7 @@ import ChartCard from "../components/ChartCard.astro";
         updateFundDetails(defaultIndex);
     }
 
-    function updateFundDetails(index) {
+    function updateFundDetails(index: number) {
         currentFundIndex = index;
         const fund = currentFunds[index];
         if (!fund) return;
@@ -134,7 +150,7 @@ import ChartCard from "../components/ChartCard.astro";
         updateChart(fund);
     }
 
-    function updateChart(fund) {
+    function updateChart(fund: any) {
         const appState = getState();
         const cagr = fund["5_year_cagr_percent"];
         const expense = fund.expense_ratio_percent;
@@ -190,7 +206,7 @@ import ChartCard from "../components/ChartCard.astro";
         }
     }
 
-    function initChart(labels, data1, data2) {
+    function initChart(labels: string[], data1: number[], data2: number[]) {
         if (!ctx) return;
 
         chart = new Chart(ctx, {
@@ -272,18 +288,13 @@ import ChartCard from "../components/ChartCard.astro";
                         },
                         footerColor: "#f87171",
                         footerFont: {
-                            weight: "600",
+                            weight: "bold",
                         },
                     },
                 },
             },
         });
     }
-
-    categorySelect.addEventListener("change", (e) => {
-        const target = e.target as HTMLSelectElement;
-        populateFunds(target.value);
-    });
 
     fundSelect.addEventListener("change", (e) => {
         const target = e.target as HTMLSelectElement;
@@ -310,7 +321,7 @@ import ChartCard from "../components/ChartCard.astro";
     });
 
     // Initial load
-    populateFunds("indian_mutual_funds", "Axis Bluechip Fund Direct Growth");
+    populateFunds();
 </script>
 
 <style>

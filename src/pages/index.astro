@@ -86,15 +86,10 @@ import ChartCard from "../components/ChartCard.astro";
 		years: 20,
 	};
 
-	const sliders = {
-		cagr: document.querySelector("#cagrSlider"),
-		expense: document.querySelector("#expenseSlider"),
-		years: document.querySelector("#yearSlider"),
-	};
-
-	const globalInputs = {
-		principal: document.querySelector("#principalInput"),
-		currency: document.querySelector("#currencySelect"),
+	const sliders: Record<string, HTMLInputElement> = {
+		cagr: document.querySelector("#cagrSlider") as HTMLInputElement,
+		expense: document.querySelector("#expenseSlider") as HTMLInputElement,
+		years: document.querySelector("#yearSlider") as HTMLInputElement,
 	};
 
 	const outputs = {
@@ -107,7 +102,7 @@ import ChartCard from "../components/ChartCard.astro";
 	const netLossEl = document.getElementById("netLossValue");
 	const principalDisplay = document.getElementById("principalDisplay");
 	let animatedNetLoss = 0;
-	let chart;
+	let chart: Chart;
 
 	if (ctx) {
 		chart = new Chart(ctx, {
@@ -189,7 +184,7 @@ import ChartCard from "../components/ChartCard.astro";
 						},
 						footerColor: "#f87171",
 						footerFont: {
-							weight: "600",
+							weight: "bold",
 						},
 					},
 				},
@@ -197,7 +192,7 @@ import ChartCard from "../components/ChartCard.astro";
 		});
 	}
 
-	function animateNetLoss(target) {
+	function animateNetLoss(target: number) {
 		const start = animatedNetLoss;
 		const duration = 500;
 		const startTime = performance.now();
