@@ -5,9 +5,21 @@ import PageHeader from "../components/PageHeader.astro";
 import ChartCard from "../components/ChartCard.astro";
 
 let d1Funds: any[] = [];
+let debugInfo: any = {};
+let error: string | null = null;
+
 try {
-    if (Astro.locals.runtime?.env?.etf_db) {
-        const { results } = await Astro.locals.runtime.env.etf_db
+    const runtime = Astro.locals.runtime;
+    debugInfo = {
+        hasLocals: !!Astro.locals,
+        hasRuntime: !!runtime,
+        hasEnv: !!runtime?.env,
+        hasDb: !!runtime?.env?.etf_db,
+        envKeys: runtime?.env ? Object.keys(runtime.env) : [],
+    };
+
+    if (runtime?.env?.etf_db) {
+        const { results } = await runtime.env.etf_db
             .prepare(
                 `
                 SELECT 
@@ -21,9 +33,15 @@ try {
             )
             .all();
         d1Funds = results || [];
+    } else {
+        console.warn(
+            "D1 database binding not found in runtime. Available keys:",
+            Object.keys(runtime?.env || {}),
+        );
     }
-} catch (e) {
+} catch (e: any) {
     console.error("Failed to fetch from D1", e);
+    error = e.message || String(e);
 }
 ---
 
@@ -74,11 +92,30 @@ try {
         </section>
 
         <ChartCard title="Fund Name" chartId="fundChart" />
+
+        <div
+            id="debug-message"
+            style="display: none; color: #f87171; padding: 20px; background: rgba(15, 23, 42, 0.95); border: 1px solid #f87171; border-radius: 8px; margin-top: 20px; font-family: monospace; white-space: pre-wrap;"
+        >
+        </div>
     </section>
 </Layout>
 
-<script define:vars={{ d1Funds }}>
+<script define:vars={{ d1Funds, debugInfo, error }}>
     window.d1Funds = d1Funds;
+    window.debugInfo = debugInfo;
+    window.serverError = error;
+
+    if (error || !d1Funds || d1Funds.length === 0) {
+        console.log("Debug Info:", debugInfo);
+        console.error("Server Error:", error);
+
+        const el = document.getElementById("debug-message");
+        if (el) {
+            el.style.display = "block";
+            el.innerHTML = `<strong>Debug Info:</strong>\n${JSON.stringify(debugInfo, null, 2)}\n\n<strong>Error:</strong>\n${error || "No error message, but no funds found."}`;
+        }
+    }
 </script>
 
 <script>
