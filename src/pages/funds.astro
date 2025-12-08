@@ -1,4 +1,6 @@
 ---
+export const prerender = false;
+
 import Layout from "../layouts/Layout.astro";
 import GlobalControls from "../components/GlobalControls.astro";
 import PageHeader from "../components/PageHeader.astro";
@@ -15,7 +17,6 @@ try {
         hasRuntime: !!runtime,
         hasEnv: !!runtime?.env,
         hasDb: !!runtime?.env?.etf_db,
-        envKeys: runtime?.env ? Object.keys(runtime.env) : [],
     };
 
     if (runtime?.env?.etf_db) {
@@ -34,10 +35,7 @@ try {
             .all();
         d1Funds = results || [];
     } else {
-        console.warn(
-            "D1 database binding not found in runtime. Available keys:",
-            Object.keys(runtime?.env || {}),
-        );
+        console.warn("D1 database binding not found in runtime");
     }
 } catch (e: any) {
     console.error("Failed to fetch from D1", e);
