@@ -2,28 +2,41 @@
 interface Props {
     title: string;
     chartId: string;
+    showStats?: boolean;
+    eyebrow?: string;
 }
 
-const { title, chartId } = Astro.props;
+const {
+    title,
+    chartId,
+    showStats = true,
+    eyebrow = "Projected Growth",
+} = Astro.props;
 ---
 
 <div class="chart-card">
     <div class="chart-header">
         <div>
-            <p class="eyebrow">Projected Growth</p>
+            {eyebrow && <p class="eyebrow">{eyebrow}</p>}
             <h2 id="chartTitle">{title}</h2>
         </div>
-        <div class="chart-header-right">
-            <p class="principal">
-                Starting with <span id="principalDisplay">--</span>
-            </p>
-            <p class="loss-pill">
-                <span class="loss-label" id="lossLabel"
-                    >Projected loss to fees</span
-                >
-                <span id="netLossValue" class="loss-value">0</span>
-            </p>
-        </div>
+        {
+            showStats && (
+                <div class="chart-header-right">
+                    <p class="principal">
+                        Starting with <span id="principalDisplay">--</span>
+                    </p>
+                    <p class="loss-pill">
+                        <span class="loss-label" id="lossLabel">
+                            Projected loss to fees
+                        </span>
+                        <span id="netLossValue" class="loss-value">
+                            0
+                        </span>
+                    </p>
+                </div>
+            )
+        }
     </div>
     <canvas id={chartId} width="640" height="360" aria-label="Growth chart"
     ></canvas>

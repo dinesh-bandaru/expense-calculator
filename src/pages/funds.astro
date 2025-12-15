@@ -7,6 +7,7 @@ import PageHeader from "../components/PageHeader.astro";
 import ChartCard from "../components/ChartCard.astro";
 
 let d1Funds: any[] = [];
+let d1Holdings: any = {};
 let debugInfo: any = {};
 let error: string | null = null;
 
@@ -20,20 +21,38 @@ try {
     };
 
     if (runtime?.env?.etf_db) {
-        const { results } = await runtime.env.etf_db
-            .prepare(
-                `
-                SELECT 
-                    t1.symbol, 
-                    t1.name, 
-                    t2."5yr_cagr" as cagr, 
-                    t2.expense_ratio 
-                FROM etfs t1 
-                LEFT JOIN etf_fundamentals t2 ON t1.symbol = t2.etf
-            `,
-            )
-            .all();
-        d1Funds = results || [];
+        const fundsStmt = runtime.env.etf_db.prepare(`
+            SELECT 
+                t1.symbol, 
+                t1.name, 
+                t2."5yr_cagr" as cagr, 
+                t2.expense_ratio 
+            FROM etfs t1 
+            LEFT JOIN etf_fundamentals t2 ON t1.symbol = t2.etf
+        `);
+
+        const holdingsStmt = runtime.env.etf_db.prepare(`
+            SELECT etf, holding, weight 
+            FROM etf_holdings 
+            ORDER BY etf, weight DESC
+        `);
+
+        const [fundsResult, holdingsResult] = await runtime.env.etf_db.batch([
+            fundsStmt,
+            holdingsStmt,
+        ]);
+
+        d1Funds = fundsResult.results || [];
+        const holdings = holdingsResult.results || [];
+
+        // Group holdings by ETF
+        d1Holdings = {};
+        holdings.forEach((h: any) => {
+            if (!d1Holdings[h.etf]) {
+                d1Holdings[h.etf] = [];
+            }
+            d1Holdings[h.etf].push(h);
+        });
     } else {
         console.warn("D1 database binding not found in runtime");
     }
@@ -90,6 +109,14 @@ try {
         </section>
 
         <ChartCard title="Fund Name" chartId="fundChart" />
+        <div class="holdings-chart-container">
+            <ChartCard
+                title="Top Holdings"
+                chartId="holdingsChart"
+                showStats={false}
+                eyebrow=""
+            />
+        </div>
 
         <div
             id="debug-message"
@@ -99,8 +126,9 @@ try {
     </section>
 </Layout>
 
-<script define:vars={{ d1Funds, debugInfo, error }}>
+<script define:vars={{ d1Funds, d1Holdings, debugInfo, error }}>
     window.d1Funds = d1Funds;
+    window.d1Holdings = d1Holdings;
     window.debugInfo = debugInfo;
     window.serverError = error;
 
@@ -118,10 +146,11 @@ try {
 
 <script>
     import { Chart, registerables } from "chart.js";
+    import { TreemapController, TreemapElement } from "chartjs-chart-treemap";
     import { computeCompoundInterest } from "../lib/finance";
     import { getState, setState, subscribe, formatMoney } from "../lib/store";
 
-    Chart.register(...registerables);
+    Chart.register(...registerables, TreemapController, TreemapElement);
 
     const fundSelect = document.getElementById(
         "fundSelect",
@@ -136,15 +165,21 @@ try {
     const netLossEl = document.getElementById("netLossValue");
     const lossLabel = document.getElementById("lossLabel");
     const ctx = document.getElementById("fundChart") as HTMLCanvasElement;
+    const holdingsCtx = document.getElementById(
+        "holdingsChart",
+    ) as HTMLCanvasElement;
     const principalDisplay = document.getElementById("principalDisplay");
 
     let chart: Chart;
+    let holdingsChart: Chart;
     let currentFunds: any[] = [];
     let currentFundIndex = 0;
     let years = 20;
 
     // Use D1 funds directly
     const d1Funds: any[] = (window as any).d1Funds || [];
+    const d1Holdings: any = (window as any).d1Holdings || {};
+
     currentFunds = d1Funds.map((fund: any) => ({
         fund_name: fund.name,
         symbol: fund.symbol,
@@ -183,6 +218,105 @@ try {
         if (fundNameTitle) fundNameTitle.textContent = fund.fund_name;
 
         updateChart(fund);
+        updateHoldingsChart(fund);
+    }
+
+    function updateHoldingsChart(fund: any) {
+        if (!holdingsCtx) return;
+
+        const symbol = fund.symbol;
+        const holdings = d1Holdings[symbol] || [];
+
+        const sortedHoldings = holdings.sort(
+            (a: any, b: any) => parseFloat(b.weight) - parseFloat(a.weight),
+        );
+        const topHoldingsRaw = sortedHoldings.slice(0, 20);
+        const otherHoldingsRaw = sortedHoldings.slice(20);
+
+        const topHoldings = topHoldingsRaw.map((h: any) => ({
+            holding: h.holding,
+            weight: parseFloat(h.weight) * 100,
+        }));
+
+        if (otherHoldingsRaw.length > 0) {
+            const otherWeight = otherHoldingsRaw.reduce(
+                (sum: number, h: any) => sum + parseFloat(h.weight),
+                0,
+            );
+            topHoldings.push({
+                holding: `Others (${otherHoldingsRaw.length})`,
+                weight: otherWeight * 100,
+            });
+        }
+
+        if (holdingsChart) {
+            holdingsChart.data.datasets[0].tree = topHoldings;
+            holdingsChart.update();
+        } else {
+            holdingsChart = new Chart(holdingsCtx, {
+                type: "treemap",
+                data: {
+                    datasets: [
+                        {
+                            tree: topHoldings,
+                            key: "weight",
+                            groups: ["holding"],
+                            backgroundColor: (ctx) => {
+                                if (ctx.type !== "data") return "transparent";
+                                const value = (ctx.raw as any).v;
+                                const alpha = value / 10 + 0.1; // Dynamic opacity based on weight
+                                return `rgba(74, 222, 128, ${Math.min(alpha, 0.8)})`;
+                            },
+                            borderColor: "rgba(15, 23, 42, 0.5)",
+                            borderWidth: 1,
+                            spacing: 1,
+                            labels: {
+                                display: true,
+                                color: "#e2e8f0",
+                                formatter: (ctx) => {
+                                    if (ctx.type !== "data") return;
+
+                                    const data = ctx.raw as any;
+
+                                    // Use weight-based heuristic for visibility
+                                    // If weight is less than 1%, don't show label to avoid clutter
+                                    if (data.v < 1) {
+                                        return undefined;
+                                    }
+
+                                    return [data.g, `${data.v.toFixed(2)}%`];
+                                },
+                                font: {
+                                    size: 12,
+                                    weight: "bold",
+                                },
+                            },
+                        },
+                    ],
+                },
+                options: {
+                    maintainAspectRatio: true,
+                    aspectRatio: 1,
+                    plugins: {
+                        legend: {
+                            display: false,
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => {
+                                    const item = items[0].raw as any;
+                                    return item.g;
+                                },
+                                label: (item) => {
+                                    const data = item.raw as any;
+                                    return `Weight: ${data.v.toFixed(2)}%`;
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        }
     }
 
     function updateChart(fund: any) {
@@ -219,22 +353,29 @@ try {
             chart.data.labels = labels;
             chart.data.datasets[0].data = withoutFees;
             chart.data.datasets[1].data = withFees;
-            chart.options.scales.y.ticks.callback = (value) =>
-                formatMoney(Number(value));
-            chart.options.plugins.tooltip.callbacks.label = (context) =>
-                `${context.dataset.label}: ${formatMoney(context.parsed.y)}`;
-            chart.options.plugins.tooltip.callbacks.footer = (items) => {
-                if (!items.length) return "";
-                const withoutFees =
-                    items.find((item) => item.datasetIndex === 0)?.parsed.y ??
-                    0;
-                const withFees =
-                    items.find((item) => item.datasetIndex === 1)?.parsed.y ??
-                    0;
-                const delta = withoutFees - withFees;
-                if (!delta) return "";
-                return `Difference: ${formatMoney(delta)}`;
-            };
+
+            if (chart.options.scales?.y?.ticks) {
+                chart.options.scales.y.ticks.callback = (value) =>
+                    formatMoney(Number(value || 0));
+            }
+
+            if (chart.options.plugins?.tooltip?.callbacks) {
+                chart.options.plugins.tooltip.callbacks.label = (context) =>
+                    `${context.dataset.label}: ${formatMoney(context.parsed.y)}`;
+
+                chart.options.plugins.tooltip.callbacks.footer = (items) => {
+                    if (!items.length) return "";
+                    const withoutFees =
+                        items.find((item) => item.datasetIndex === 0)?.parsed
+                            .y ?? 0;
+                    const withFees =
+                        items.find((item) => item.datasetIndex === 1)?.parsed
+                            .y ?? 0;
+                    const delta = withoutFees - withFees;
+                    if (!delta) return "";
+                    return `Difference: ${formatMoney(delta)}`;
+                };
+            }
             chart.update();
         } else {
             initChart(labels, withoutFees, withFees);
@@ -455,5 +596,11 @@ try {
             padding: 16px;
             grid-template-columns: 1fr;
         }
+    }
+
+    .holdings-chart-container {
+        max-width: 600px;
+        margin: 0 auto;
+        width: 100%;
     }
 </style>
